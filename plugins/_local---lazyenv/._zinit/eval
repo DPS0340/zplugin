@@ -1,0 +1,5 @@
+;evalenv nvm NVM_DIR "
+ifF '[[ $OSTYPE == "darwin"* ]]' '[[ -s \$(brew --prefix nvm)/nvm.sh ]] && source \$(brew --prefix nvm)/nvm.sh --no-use' '[[ -s "${NVM_DIR}/nvm.sh" ]] && . "${NVM_DIR}/nvm.sh" --no-use
+ [[ -s "${NVM_DIR}/bash_completion" ]] && \. "${NVM_DIR}/bash_completion"'
+";evalenv rvm RVM_ROOT "
+echo '[[ -s "$RVM_ROOT/scripts/rvm" ]] && . "$RVM_ROOT/scripts/rvm"'";evalenv jenv JENV_ROOT "command jenv   init -";evalenv goenv GOENV_ROOT "command goenv  init -";evalenv plenv PLENV_ROOT "command plenv  init -";evalenv pyenv PYENV_ROOT "command pyenv  init -";evalenv rbenv RBENV_ROOT "command rbenv  init -";evalenv nodenv NODENV_ROOT "command nodenv init -";evalenv phpenv PHPENV_ROOT "command phpenv init -";evalfn hub "hub alias -s";evalfn thefuck "thefuck --alias";evalfn scmpuff "scmpuff init -s";evalfn kubectl "kubectl completion zsh";evalfn brew "echo 'FPATH=\$(brew --prefix)/share/zsh/site-functions:$FPATH'";evalfn pip "pip completion --zsh";evalfn pipenv "_PIPENV_COMPLETE=zsh_source pipenv"
