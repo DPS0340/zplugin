@@ -2,11 +2,11 @@ ripgrep (rg)
 ------------
 ripgrep is a line-oriented search tool that recursively searches the current
 directory for a regex pattern. By default, ripgrep will respect gitignore rules
-and automatically skip hidden files/directories and binary files. ripgrep
-has first class support on Windows, macOS and Linux, with binary downloads
-available for [every release](https://github.com/BurntSushi/ripgrep/releases).
-ripgrep is similar to other popular search tools like The Silver Searcher, ack
-and grep.
+and automatically skip hidden files/directories and binary files. (To disable
+all automatic filtering by default, use `rg -uuu`.) ripgrep has first class
+support on Windows, macOS and Linux, with binary downloads available for [every
+release](https://github.com/BurntSushi/ripgrep/releases). ripgrep is similar to
+other popular search tools like The Silver Searcher, ack and grep.
 
 [![Build status](https://github.com/BurntSushi/ripgrep/workflows/ci/badge.svg)](https://github.com/BurntSushi/ripgrep/actions)
 [![Crates.io](https://img.shields.io/crates/v/ripgrep.svg)](https://crates.io/crates/ripgrep)
@@ -42,7 +42,7 @@ This example searches the entire
 [Linux kernel source tree](https://github.com/BurntSushi/linux)
 (after running `make defconfig && make -j8`) for `[A-Z]+_SUSPEND`, where
 all matches must be words. Timings were collected on a system with an Intel
-i7-6900K 3.2 GHz.
+i9-12900K 5.2 GHz.
 
 Please remember that a single benchmark is never enough! See my
 [blog post on ripgrep](https://blog.burntsushi.net/ripgrep/)
@@ -50,13 +50,14 @@ for a very detailed comparison with more benchmarks and analysis.
 
 | Tool | Command | Line count | Time |
 | ---- | ------- | ---------- | ---- |
-| ripgrep (Unicode) | `rg -n -w '[A-Z]+_SUSPEND'` | 452 | **0.136s** |
-| [git grep](https://www.kernel.org/pub/software/scm/git/docs/git-grep.html) | `git grep -P -n -w '[A-Z]+_SUSPEND'` | 452 | 0.348s |
-| [ugrep (Unicode)](https://github.com/Genivia/ugrep) | `ugrep -r --ignore-files --no-hidden -I -w '[A-Z]+_SUSPEND'` | 452 | 0.506s |
-| [The Silver Searcher](https://github.com/ggreer/the_silver_searcher) | `ag -w '[A-Z]+_SUSPEND'` | 452 | 0.654s |
-| [git grep](https://www.kernel.org/pub/software/scm/git/docs/git-grep.html) | `LC_ALL=C git grep -E -n -w '[A-Z]+_SUSPEND'` | 452 | 1.150s |
-| [ack](https://github.com/beyondgrep/ack3) | `ack -w '[A-Z]+_SUSPEND'` | 452 | 4.054s |
-| [git grep (Unicode)](https://www.kernel.org/pub/software/scm/git/docs/git-grep.html) | `LC_ALL=en_US.UTF-8 git grep -E -n -w '[A-Z]+_SUSPEND'` | 452 | 4.205s |
+| ripgrep (Unicode) | `rg -n -w '[A-Z]+_SUSPEND'` | 536 | **0.082s** (1.00x) |
+| [hypergrep](https://github.com/p-ranav/hypergrep) | `hgrep -n -w '[A-Z]+_SUSPEND'` | 536 | 0.167s (2.04x) |
+| [git grep](https://www.kernel.org/pub/software/scm/git/docs/git-grep.html) | `git grep -P -n -w '[A-Z]+_SUSPEND'` | 536 | 0.273s (3.34x) |
+| [The Silver Searcher](https://github.com/ggreer/the_silver_searcher) | `ag -w '[A-Z]+_SUSPEND'` | 534 | 0.443s (5.43x) |
+| [ugrep](https://github.com/Genivia/ugrep) | `ugrep -r --ignore-files --no-hidden -I -w '[A-Z]+_SUSPEND'` | 536 | 0.639s (7.82x) |
+| [git grep](https://www.kernel.org/pub/software/scm/git/docs/git-grep.html) | `LC_ALL=C git grep -E -n -w '[A-Z]+_SUSPEND'` | 536 | 0.727s (8.91x) |
+| [git grep (Unicode)](https://www.kernel.org/pub/software/scm/git/docs/git-grep.html) | `LC_ALL=en_US.UTF-8 git grep -E -n -w '[A-Z]+_SUSPEND'` | 536 | 2.670s (32.70x) |
+| [ack](https://github.com/beyondgrep/ack3) | `ack -w '[A-Z]+_SUSPEND'` | 2677 | 2.935s (35.94x) |
 
 Here's another benchmark on the same corpus as above that disregards gitignore
 files and searches with a whitelist instead. The corpus is the same as in the
@@ -65,24 +66,52 @@ doing equivalent work:
 
 | Tool | Command | Line count | Time |
 | ---- | ------- | ---------- | ---- |
-| ripgrep | `rg -uuu -tc -n -w '[A-Z]+_SUSPEND'` | 388 | **0.096s** |
-| [ugrep](https://github.com/Genivia/ugrep) | `ugrep -r -n --include='*.c' --include='*.h' -w '[A-Z]+_SUSPEND'` | 388 | 0.493s |
-| [GNU grep](https://www.gnu.org/software/grep/) | `egrep -r -n --include='*.c' --include='*.h' -w '[A-Z]+_SUSPEND'` | 388 | 0.806s |
+| ripgrep | `rg -uuu -tc -n -w '[A-Z]+_SUSPEND'` | 447 | **0.063s** (1.00x) |
+| [ugrep](https://github.com/Genivia/ugrep) | `ugrep -r -n --include='*.c' --include='*.h' -w '[A-Z]+_SUSPEND'` | 447 | 0.607s (9.62x) |
+| [GNU grep](https://www.gnu.org/software/grep/) | `grep -E -r -n --include='*.c' --include='*.h' -w '[A-Z]+_SUSPEND'` | 447 | 0.674s (10.69x) |
 
-And finally, a straight-up comparison between ripgrep, ugrep and GNU grep on a
-single large file cached in memory
-(~13GB, [`OpenSubtitles.raw.en.gz`](http://opus.nlpl.eu/download.php?f=OpenSubtitles/v2018/mono/OpenSubtitles.raw.en.gz)):
+Now we'll move to searching on single large file. Here is a straight-up
+comparison between ripgrep, ugrep and GNU grep on a file cached in memory
+(~13GB, [`OpenSubtitles.raw.en.gz`](http://opus.nlpl.eu/download.php?f=OpenSubtitles/v2018/mono/OpenSubtitles.raw.en.gz), decompressed):
 
 | Tool | Command | Line count | Time |
 | ---- | ------- | ---------- | ---- |
-| ripgrep | `rg -w 'Sherlock [A-Z]\w+'` | 7882 | **2.769s** |
-| [ugrep](https://github.com/Genivia/ugrep) | `ugrep -w 'Sherlock [A-Z]\w+'` | 7882 | 6.802s |
-| [GNU grep](https://www.gnu.org/software/grep/) | `LC_ALL=en_US.UTF-8 egrep -w 'Sherlock [A-Z]\w+'` | 7882 | 9.027s |
+| ripgrep (Unicode) | `rg -w 'Sherlock [A-Z]\w+'` | 7882 | **1.042s** (1.00x) |
+| [ugrep](https://github.com/Genivia/ugrep) | `ugrep -w 'Sherlock [A-Z]\w+'` | 7882 | 1.339s (1.28x) |
+| [GNU grep (Unicode)](https://www.gnu.org/software/grep/) | `LC_ALL=en_US.UTF-8 egrep -w 'Sherlock [A-Z]\w+'` | 7882 | 6.577s (6.31x) |
 
 In the above benchmark, passing the `-n` flag (for showing line numbers)
-increases the times to `3.423s` for ripgrep and `13.031s` for GNU grep. ugrep
+increases the times to `1.664s` for ripgrep and `9.484s` for GNU grep. ugrep
 times are unaffected by the presence or absence of `-n`.
 
+Beware of performance cliffs though:
+
+| Tool | Command | Line count | Time |
+| ---- | ------- | ---------- | ---- |
+| ripgrep (Unicode) | `rg -w '[A-Z]\w+ Sherlock [A-Z]\w+'` | 485 | **1.053s** (1.00x) |
+| [GNU grep (Unicode)](https://www.gnu.org/software/grep/) | `LC_ALL=en_US.UTF-8 grep -E -w '[A-Z]\w+ Sherlock [A-Z]\w+'` | 485 | 6.234s (5.92x) |
+| [ugrep](https://github.com/Genivia/ugrep) | `ugrep -w '[A-Z]\w+ Sherlock [A-Z]\w+'` | 485 | 28.973s (27.51x) |
+
+And performance can drop precipitously across the board when searching big
+files for patterns without any opportunities for literal optimizations:
+
+| Tool | Command | Line count | Time |
+| ---- | ------- | ---------- | ---- |
+| ripgrep | `rg '[A-Za-z]{30}'` | 6749 | **15.569s** (1.00x) |
+| [ugrep](https://github.com/Genivia/ugrep) | `ugrep -E '[A-Za-z]{30}'` | 6749 | 21.857s (1.40x) |
+| [GNU grep](https://www.gnu.org/software/grep/) | `LC_ALL=C grep -E '[A-Za-z]{30}'` | 6749 | 32.409s (2.08x) |
+| [GNU grep (Unicode)](https://www.gnu.org/software/grep/) | `LC_ALL=en_US.UTF-8 grep -E '[A-Za-z]{30}'` | 6795 | 8m30s (32.74x) |
+
+Finally, high match counts also tend to both tank performance and smooth
+out the differences between tools (because performance is dominated by how
+quickly one can handle a match and not the algorithm used to detect the match,
+generally speaking):
+
+| Tool | Command | Line count | Time |
+| ---- | ------- | ---------- | ---- |
+| ripgrep | `rg the` | 83499915 | **6.948s** (1.00x) |
+| [ugrep](https://github.com/Genivia/ugrep) | `ugrep the` | 83499915 | 11.721s (1.69x) |
+| [GNU grep](https://www.gnu.org/software/grep/) | `LC_ALL=C grep the` | 83499915 | 15.217s (2.19x) |
 
 ### Why should I use ripgrep?
 
@@ -90,16 +119,16 @@ times are unaffected by the presence or absence of `-n`.
   because it contains most of their features and is generally faster. (See
   [the FAQ](FAQ.md#posix4ever) for more details on whether ripgrep can truly
   replace grep.)
-* Like other tools specialized to code search, ripgrep defaults to recursive
-  directory search and won't search files ignored by your
-  `.gitignore`/`.ignore`/`.rgignore` files. It also ignores hidden and binary
-  files by default. ripgrep also implements full support for `.gitignore`,
-  whereas there are many bugs related to that functionality in other code
-  search tools claiming to provide the same functionality.
-* ripgrep can search specific types of files. For example, `rg -tpy foo`
-  limits your search to Python files and `rg -Tjs foo` excludes JavaScript
-  files from your search. ripgrep can be taught about new file types with
-  custom matching rules.
+* Like other tools specialized to code search, ripgrep defaults to
+  [recursive search](GUIDE.md#recursive-search) and does [automatic
+  filtering](GUIDE.md#automatic-filtering). Namely, ripgrep won't search files
+  ignored by your `.gitignore`/`.ignore`/`.rgignore` files, it won't search
+  hidden files and it won't search binary files. Automatic filtering can be
+  disabled with `rg -uuu`.
+* ripgrep can [search specific types of files](GUIDE.md#manual-filtering-file-types).
+  For example, `rg -tpy foo` limits your search to Python files and `rg -Tjs
+  foo` excludes JavaScript files from your search. ripgrep can be taught about
+  new file types with custom matching rules.
 * ripgrep supports many features found in `grep`, such as showing the context
   of search results, searching multiple patterns, highlighting matches with
   color and full Unicode support. Unlike GNU grep, ripgrep stays fast while
@@ -109,17 +138,21 @@ times are unaffected by the presence or absence of `-n`.
   backreferences in your patterns, which are not supported in ripgrep's default
   regex engine. PCRE2 support can be enabled with `-P/--pcre2` (use PCRE2
   always) or `--auto-hybrid-regex` (use PCRE2 only if needed). An alternative
-  syntax is provided via the `--engine (default|pcre2|auto-hybrid)` option.
-* ripgrep supports searching files in text encodings other than UTF-8, such
-  as UTF-16, latin-1, GBK, EUC-JP, Shift_JIS and more. (Some support for
-  automatically detecting UTF-16 is provided. Other text encodings must be
-  specifically specified with the `-E/--encoding` flag.)
+  syntax is provided via the `--engine (default|pcre2|auto)` option.
+* ripgrep has [rudimentary support for replacements](GUIDE.md#replacements),
+  which permit rewriting output based on what was matched.
+* ripgrep supports [searching files in text encodings](GUIDE.md#file-encoding)
+  other than UTF-8, such as UTF-16, latin-1, GBK, EUC-JP, Shift_JIS and more.
+  (Some support for automatically detecting UTF-16 is provided. Other text
+  encodings must be specifically specified with the `-E/--encoding` flag.)
 * ripgrep supports searching files compressed in a common format (brotli,
   bzip2, gzip, lz4, lzma, xz, or zstandard) with the `-z/--search-zip` flag.
 * ripgrep supports
   [arbitrary input preprocessing filters](GUIDE.md#preprocessor)
   which could be PDF text extraction, less supported decompression, decrypting,
   automatic encoding detection and so on.
+* ripgrep can be configured via a
+  [configuration file](GUIDE.md#configuration-file).
 
 In other words, use ripgrep if you like speed, filtering by default, fewer
 bugs and Unicode support.
@@ -187,6 +220,16 @@ configuration files, passthru, support for searching compressed files,
 multiline search and opt-in fancy regex support via PCRE2.
 
 
+### Playground
+
+If you'd like to try ripgrep before installing, there's an unofficial
+[playground](https://codapi.org/ripgrep/) and an [interactive
+tutorial](https://codapi.org/try/ripgrep/).
+
+If you have any questions about these, please open an issue in the [tutorial
+repo](https://github.com/nalgeon/tryxinyminutes).
+
+
 ### Installation
 
 The binary name for ripgrep is `rg`.
@@ -224,17 +267,25 @@ If you're a **Windows Scoop** user, then you can install ripgrep from the
 $ scoop install ripgrep
 ```
 
+If you're a **Windows Winget** user, then you can install ripgrep from the
+[winget-pkgs](https://github.com/microsoft/winget-pkgs/tree/master/manifests/b/BurntSushi/ripgrep)
+repository:
+
+```
+$ winget install BurntSushi.ripgrep.MSVC
+```
+
 If you're an **Arch Linux** user, then you can install ripgrep from the official repos:
 
 ```
-$ pacman -S ripgrep
+$ sudo pacman -S ripgrep
 ```
 
 If you're a **Gentoo** user, you can install ripgrep from the
 [official repo](https://packages.gentoo.org/packages/sys-apps/ripgrep):
 
 ```
-$ emerge sys-apps/ripgrep
+$ sudo emerge sys-apps/ripgrep
 ```
 
 If you're a **Fedora** user, you can install ripgrep from official
@@ -255,6 +306,7 @@ If you're a **RHEL/CentOS 7/8** user, you can install ripgrep from
 [copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
 
 ```
+$ sudo yum install -y yum-utils
 $ sudo yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo
 $ sudo yum install ripgrep
 ```
@@ -264,7 +316,19 @@ If you're a **Nix** user, you can install ripgrep from
 
 ```
 $ nix-env --install ripgrep
-$ # (Or using the attribute name, which is also ripgrep.)
+```
+
+If you're a **Flox** user, you can install ripgrep as follows:
+
+```
+$ flox install ripgrep
+```
+
+If you're a **Guix** user, you can install ripgrep from the official
+package collection:
+
+```
+$ guix install ripgrep
 ```
 
 If you're a **Debian** user (or a user of a Debian derivative like **Ubuntu**),
@@ -272,12 +336,14 @@ then ripgrep can be installed using a binary `.deb` file provided in each
 [ripgrep release](https://github.com/BurntSushi/ripgrep/releases).
 
 ```
-$ curl -LO https://github.com/BurntSushi/ripgrep/releases/download/12.1.1/ripgrep_12.1.1_amd64.deb
-$ sudo dpkg -i ripgrep_12.1.1_amd64.deb
+$ curl -LO https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep_14.1.0-1_amd64.deb
+$ sudo dpkg -i ripgrep_14.1.0-1_amd64.deb
 ```
 
-If you run Debian Buster (currently Debian stable) or Debian sid, ripgrep is
-[officially maintained by Debian](https://tracker.debian.org/pkg/rust-ripgrep).
+If you run Debian stable, ripgrep is [officially maintained by
+Debian](https://tracker.debian.org/pkg/rust-ripgrep), although its version may
+be older than the `deb` package available in the previous step.
+
 ```
 $ sudo apt-get install ripgrep
 ```
@@ -295,11 +361,18 @@ seem to work right and generate a number of very strange bug reports that I
 don't know how to fix and don't have the time to fix. Therefore, it is no
 longer a recommended installation option.)
 
+If you're an **ALT** user, you can install ripgrep from the
+[official repo](https://packages.altlinux.org/en/search?name=ripgrep):
+
+```
+$ sudo apt-get install ripgrep
+```
+
 If you're a **FreeBSD** user, then you can install ripgrep from the
 [official ports](https://www.freshports.org/textproc/ripgrep/):
 
 ```
-# pkg install ripgrep
+$ sudo pkg install ripgrep
 ```
 
 If you're an **OpenBSD** user, then you can install ripgrep from the
@@ -313,26 +386,33 @@ If you're a **NetBSD** user, then you can install ripgrep from
 [pkgsrc](https://pkgsrc.se/textproc/ripgrep):
 
 ```
-# pkgin install ripgrep
+$ sudo pkgin install ripgrep
 ```
 
 If you're a **Haiku x86_64** user, then you can install ripgrep from the
 [official ports](https://github.com/haikuports/haikuports/tree/master/sys-apps/ripgrep):
 
 ```
-$ pkgman install ripgrep
+$ sudo pkgman install ripgrep
 ```
 
 If you're a **Haiku x86_gcc2** user, then you can install ripgrep from the
 same port as Haiku x86_64 using the x86 secondary architecture build:
 
 ```
-$ pkgman install ripgrep_x86
+$ sudo pkgman install ripgrep_x86
+```
+
+If you're a **Void Linux** user, then you can install ripgrep from the
+[official repository](https://voidlinux.org/packages/?arch=x86_64&q=ripgrep):
+
+```
+$ sudo xbps-install -Syv ripgrep
 ```
 
 If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
 
-* Note that the minimum supported version of Rust for ripgrep is **1.34.0**,
+* Note that the minimum supported version of Rust for ripgrep is **1.72.0**,
   although ripgrep may work with older versions.
 * Note that the binary may be bigger than expected because it contains debug
   symbols. This is intentional. To remove debug symbols and therefore reduce
@@ -342,12 +422,20 @@ If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
 $ cargo install ripgrep
 ```
 
+Alternatively, one can use [`cargo
+binstall`](https://github.com/cargo-bins/cargo-binstall) to install a ripgrep
+binary directly from GitHub:
+
+```
+$ cargo binstall ripgrep
+```
+
 
 ### Building
 
 ripgrep is written in Rust, so you'll need to grab a
 [Rust installation](https://www.rust-lang.org/) in order to compile it.
-ripgrep compiles with Rust 1.34.0 (stable) or newer. In general, ripgrep tracks
+ripgrep compiles with Rust 1.72.0 (stable) or newer. In general, ripgrep tracks
 the latest stable release of the Rust compiler.
 
 To build ripgrep:
@@ -360,18 +448,13 @@ $ ./target/release/rg --version
 0.1.3
 ```
 
-If you have a Rust nightly compiler and a recent Intel CPU, then you can enable
-additional optional SIMD acceleration like so:
-
-```
-RUSTFLAGS="-C target-cpu=native" cargo build --release --features 'simd-accel'
-```
-
-The `simd-accel` feature enables SIMD support in certain ripgrep dependencies
-(responsible for transcoding). They are not necessary to get SIMD optimizations
-for search; those are enabled automatically. Hopefully, some day, the
-`simd-accel` feature will similarly become unnecessary. **WARNING:** Currently,
-enabling this option can increase compilation times dramatically.
+**NOTE:** In the past, ripgrep supported a `simd-accel` Cargo feature when
+using a Rust nightly compiler. This only benefited UTF-16 transcoding.
+Since it required unstable features, this build mode was prone to breakage.
+Because of that, support for it has been removed. If you want SIMD
+optimizations for UTF-16 transcoding, then you'll have to petition the
+[`encoding_rs`](https://github.com/hsivonen/encoding_rs) project to use stable
+APIs.
 
 Finally, optional PCRE2 support can be built with ripgrep by enabling the
 `pcre2` feature:
@@ -379,9 +462,6 @@ Finally, optional PCRE2 support can be built with ripgrep by enabling the
 ```
 $ cargo build --release --features 'pcre2'
 ```
-
-(Tip: use `--features 'pcre2 simd-accel'` to also include compile time SIMD
-optimizations, which will only work with a nightly compiler.)
 
 Enabling the PCRE2 feature works with a stable Rust compiler and will
 attempt to automatically find and link with your system's PCRE2 library via
@@ -419,12 +499,20 @@ $ cargo test --all
 from the repository root.
 
 
+### Related tools
+
+* [delta](https://github.com/dandavison/delta) is a syntax highlighting
+pager that supports the `rg --json` output format. So all you need to do to
+make it work is `rg --json pattern | delta`. See [delta's manual section on
+grep](https://dandavison.github.io/delta/grep.html) for more details.
+
+
 ### Vulnerability reporting
 
 For reporting a security vulnerability, please
-[contact Andrew Gallant](https://blog.burntsushi.net/about/),
-which has my email address and PGP public key if you wish to send an encrypted
-message.
+[contact Andrew Gallant](https://blog.burntsushi.net/about/).
+The contact page has my email address and PGP public key if you wish to send an
+encrypted message.
 
 
 ### Translations
